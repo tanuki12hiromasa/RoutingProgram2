@@ -11,6 +11,7 @@ namespace Routing2
             public int pos;
             public int[] cost;
             public List<int>[] route;
+            public int uiPOS { get { return pos + 1 ; } }
         }
 
     public class Node { public int pos, prev, cost; };
@@ -182,7 +183,7 @@ namespace Routing2
                     {
                         var line = str.ReadLine();
                         var nodes = line.Split(',');
-                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) });
+                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) - 1 });
                     }
                     dest = dList.ToArray();
                     for (int i = 0; i < dest.Length; i++)
@@ -226,7 +227,7 @@ namespace Routing2
                     for(int i = 0; i < path.Count-1; i++)
                     {
                         stw.Write(dest[path[i]].name+": ");
-                        for (int j = 0; j < dest[path[i]].route[path[i+1]].Count; j++) stw.Write(dest[path[i]].route[path[i+1]][j]+" ");
+                        for (int j = 0; j < dest[path[i]].route[path[i+1]].Count; j++) stw.Write(dest[path[i]].route[path[i+1]][j] + 1 + " ");
                         stw.WriteLine();
                     }
                 }
