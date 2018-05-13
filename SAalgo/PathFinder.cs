@@ -125,27 +125,31 @@ namespace Routing2
                 tpath.Add(startpoint);
             }
 
-            /*
+            Console.WriteLine("SA start.");
+
+            var bestpath = new List<int>(path1); bestpath.AddRange(path2);
+            int bestsum = SumWeight(dest, bestpath);
             double T = 10000;
             const double alpha = 0.99999;
-            while ()
+
+            var starttime = DateTime.Now;
+            var timelimit = new TimeSpan(0, 0, 20);
+            var numofnode = dest.Length - 1;
+            var random = new Random(334);
+            Int64 count = 0;
+            while (DateTime.Now - starttime < timelimit)
             {
                 var nextpath1 = new List<int>(path1);
                 var nextpath2 = new List<int>(path2);
 
-
                 
-                bool pathTrans(int dFrom, int dTo)
-                {
-                    if (dFrom < path1.Count)
-                    {
 
-                    }
-                }
+                count++;
             }
-            */
-            path1.AddRange(path2);
-            path = path1;
+
+            Console.WriteLine("SA finish. Count:" + count);
+
+            path = bestpath;
         }
 
         int SumWeight(Destination[] dest, List<int> path)
