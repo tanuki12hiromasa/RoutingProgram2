@@ -113,10 +113,10 @@ namespace Routing2
                     int mindest = startpoint;
                     for(int i = 0; i < yetList.Count; i++)
                     {
-                        var cost = dest[cur].cost[i];
-                        var costsp = dest[startpoint].cost[i];
+                        var cost = dest[cur].cost[yetList[i]];
+                        var costsp = dest[startpoint].cost[yetList[i]];
                         if (cost < mincost || cost == mincost && costsp < mincostsp)
-                        {   mincost = cost; mincostsp = costsp; mindest = i;  }
+                        {   mincost = cost; mincostsp = costsp; mindest = yetList[i];  }
                     }
                     yetList.Remove(mindest);
                     tpath.Add(mindest);
@@ -240,6 +240,8 @@ namespace Routing2
                         for (int j = 0; j < dest[path[i]].route[path[i+1]].Count; j++) stw.Write(dest[path[i]].route[path[i+1]][j] + 1 + " ");
                         stw.WriteLine();
                     }
+                    int costsum = 0; for (int i = 0; i < path.Count - 1; i++) costsum += dest[path[i]].cost[path[i + 1]];
+                    stw.WriteLine("TIME:" + costsum * 10 + " min.");
                 }
             }
             catch(System.Exception e)
