@@ -11,7 +11,7 @@ namespace Routing2
             public int pos;
             public int[] cost;
             public List<int>[] route;
-            public int uiPOS { get { return pos + 1 ; } }
+            public int weight = 80;
         }
 
     public class Node { public int pos, prev, cost; };
@@ -41,8 +41,8 @@ namespace Routing2
             ReadMap(mapfile);
             ReadDest(destsfile);
             findRoute();
-            //makePath(dest, startpoint, out path);
-            //WritePath();
+            makePath(dest, startpoint, 1000 , out path);
+            WritePath();
             return 0;
         }
 
@@ -92,58 +92,68 @@ namespace Routing2
             WriteRoute();
         }
 
-        virtual protected void makePath(Destination[] dest,int startpoint,out List<int> path)
+        virtual protected void makePath(Destination[] dest,int startpoint,int wCap,out List<int> path)
         {
 
-            path = new List<int>();
+            var path1 = new List<int>();
+            var path2 = new List<int>();
+            //まずそれなりの解を作成する
             var yetList = new List<int>();
             for (int i = 0; i < dest.Length; i++) if (i != startpoint) yetList.Add(i);
-            path.Add(startpoint);
-            path.Add(startpoint);
-            var farDest = searchShortPath(startpoint, startpoint, -1);
-            path.Insert(1, farDest);
-            yetList.Remove(farDest);
-            while (yetList.Count > 0)
+            path1.Add(startpoint);
+            path2.Add(startpoint);
+            for(int t = 1; t <= 2; t++)
             {
-                int minCost = int.MaxValue;
-                int minDest = startpoint;
-                int minPlace = 0;
-                for (int i = 0; i < path.Count - 1; i++)
+                int cur = startpoint;
+                var tpath = (t == 1) ? path1 : path2;
+                while (tpath.Count <= dest.Length / 2 && yetList.Count > 0)
                 {
-                    var sDest = searchShortPath(path[i], path[i + 1]);
-                    if (deltaAddCost(path[i], sDest, path[i + 1]) < minCost)
+                    int mincost = int.MaxValue;
+                    int mincostsp = int.MaxValue;
+                    int mindest = startpoint;
+                    for(int i = 0; i < yetList.Count; i++)
                     {
-                        minCost = deltaAddCost(path[i], sDest, path[i + 1]);
-                        minDest = sDest;
-                        minPlace = i + 1;
+                        var cost = dest[cur].cost[i];
+                        var costsp = dest[startpoint].cost[i];
+                        if (cost < mincost || cost == mincost && costsp < mincostsp)
+                        {   mincost = cost; mincostsp = costsp; mindest = i;  }
                     }
+                    yetList.Remove(mindest);
+                    tpath.Add(mindest);
+                    cur = mindest;
                 }
-                path.Insert(minPlace, minDest);
-                yetList.Remove(minDest);
-                Console.WriteLine("add:" + dest[minDest].name);
+                tpath.Add(startpoint);
             }
 
-            int deltaAddCost(int prev, int addDest, int next) => (dest[prev].cost[addDest] + dest[addDest].cost[next]) - dest[prev].cost[next];
-
-            int searchShortPath(int prev, int next, int inv = 1)
+            /*
+            double T = 10000;
+            const double alpha = 0.99999;
+            while ()
             {
-                int minCost = int.MaxValue;
-                int mDest = startpoint;
-                foreach (int i in yetList)
+                var nextpath1 = new List<int>(path1);
+                var nextpath2 = new List<int>(path2);
+
+
+                
+                bool pathTrans(int dFrom, int dTo)
                 {
-                    var addCost = (dest[prev].cost[i] + dest[next].cost[i]) * inv;
-                    if (addCost < minCost ||
-                        (addCost == minCost && dest[startpoint].cost[i] > dest[startpoint].cost[mDest]))
+                    if (dFrom < path1.Count)
                     {
-                        minCost = addCost;
-                        mDest = i;
+
                     }
                 }
-                return mDest;
             }
+            */
+            path1.AddRange(path2);
+            path = path1;
         }
 
-        
+        int SumWeight(Destination[] dest, List<int> path)
+        {
+            int sum = 0;
+            for (int i = 0; i < path.Count; i++) sum += dest[i].weight;
+            return sum;
+        }
 
         void ReadMap(string file)
         {
