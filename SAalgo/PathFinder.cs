@@ -11,6 +11,7 @@ namespace Routing2
             public int pos;
             public int[] cost;
             public List<int>[] route;
+            public int weight = 80;
         }
 
     public class Node { public int pos, prev, cost; };
@@ -40,8 +41,8 @@ namespace Routing2
             ReadMap(mapfile);
             ReadDest(destsfile);
             findRoute();
-            //makePath(dest, startpoint, out path);
-            //WritePath();
+            makePath(dest, startpoint, 1000 , out path);
+            WritePath();
             return 0;
         }
 
@@ -91,58 +92,109 @@ namespace Routing2
             WriteRoute();
         }
 
-        virtual protected void makePath(Destination[] dest,int startpoint,out List<int> path)
+        virtual protected void makePath(Destination[] dest,int startpoint,int wCap,out List<int> path)
         {
 
-            path = new List<int>();
+            var path1 = new List<int>();
+            var path2 = new List<int>();
+            //まずそれなりの解を作成する
             var yetList = new List<int>();
             for (int i = 0; i < dest.Length; i++) if (i != startpoint) yetList.Add(i);
-            path.Add(startpoint);
-            path.Add(startpoint);
-            var farDest = searchShortPath(startpoint, startpoint, -1);
-            path.Insert(1, farDest);
-            yetList.Remove(farDest);
-            while (yetList.Count > 0)
+            path1.Add(startpoint);
+            path2.Add(startpoint);
+            for(int t = 1; t <= 2; t++)
             {
-                int minCost = int.MaxValue;
-                int minDest = startpoint;
-                int minPlace = 0;
-                for (int i = 0; i < path.Count - 1; i++)
+                int cur = startpoint;
+                var tpath = (t == 1) ? path1 : path2;
+                while (tpath.Count <= dest.Length / 2 && yetList.Count > 0)
                 {
-                    var sDest = searchShortPath(path[i], path[i + 1]);
-                    if (deltaAddCost(path[i], sDest, path[i + 1]) < minCost)
+                    int mincost = int.MaxValue;
+                    int mincostsp = int.MaxValue;
+                    int mindest = startpoint;
+                    for(int i = 0; i < yetList.Count; i++)
                     {
-                        minCost = deltaAddCost(path[i], sDest, path[i + 1]);
-                        minDest = sDest;
-                        minPlace = i + 1;
+                        var cost = dest[cur].cost[yetList[i]];
+                        var costsp = dest[startpoint].cost[yetList[i]];
+                        if (cost < mincost || cost == mincost && costsp < mincostsp)
+                        {   mincost = cost; mincostsp = costsp; mindest = yetList[i];  }
                     }
+                    yetList.Remove(mindest);
+                    tpath.Add(mindest);
+                    cur = mindest;
                 }
-                path.Insert(minPlace, minDest);
-                yetList.Remove(minDest);
-                Console.WriteLine("add:" + dest[minDest].name);
+                tpath.Add(startpoint);
             }
 
-            int deltaAddCost(int prev, int addDest, int next) => (dest[prev].cost[addDest] + dest[addDest].cost[next]) - dest[prev].cost[next];
+            Console.WriteLine("SA start.");
 
-            int searchShortPath(int prev, int next, int inv = 1)
+            var bestpath = new List<int>(path1); bestpath.AddRange(path2);
+            int bestsum = SumCost(bestpath);
+            double T = 1000;
+            const double alpha = 0.99999;
+            const double beta = 1.000005;
+
+            var starttime = DateTime.Now;
+            var timelimit = new TimeSpan(0, 0, 20);
+            var numofnode = dest.Length;
+            var random = new Random(3882);
+            Int64 count = 0;
+            while (DateTime.Now - starttime < timelimit)
             {
-                int minCost = int.MaxValue;
-                int mDest = startpoint;
-                foreach (int i in yetList)
+                var nextpath1 = new List<int>(path1);
+                var nextpath2 = new List<int>(path2);
+
+                for(bool okeyflg = false; !okeyflg;) //合法でランダムな次状態を作成
                 {
-                    var addCost = (dest[prev].cost[i] + dest[next].cost[i]) * inv;
-                    if (addCost < minCost ||
-                        (addCost == minCost && dest[startpoint].cost[i] > dest[startpoint].cost[mDest]))
-                    {
-                        minCost = addCost;
-                        mDest = i;
-                    }
+                    int transdest;
+                    var fromNum = random.Next(1, numofnode);
+                    var toNum = random.Next(1, numofnode+ 1 );
+
+                    if(fromNum < nextpath1.Count - 1) //移動元から削除
+                    {  transdest = nextpath1[fromNum]; nextpath1.RemoveAt(fromNum); }
+                    else
+                    { transdest = nextpath2[fromNum - (nextpath1.Count - 2)]; nextpath2.RemoveAt(fromNum - (nextpath1.Count - 2)); }
+
+                    if(toNum < nextpath1.Count) //移動先に挿入
+                    { nextpath1.Insert(toNum, transdest); }
+                    else
+                    { nextpath2.Insert(toNum - (nextpath1.Count - 1), transdest); }
+                    
+                    if(SumWeight(nextpath1) <= wCap && SumWeight(nextpath2) <= wCap)
+                         okeyflg = true;
+                    else
+                    { nextpath1 = new List<int>(path1); nextpath2 = new List<int>(path2); }
                 }
-                return mDest;
+
+                var E1 = SumCost(nextpath1) + SumCost(nextpath2);
+                var deltaE = E1 - (SumCost(path1) + SumCost(path2));
+                if (deltaE < 0 || Math.Exp(-deltaE / T) > random.NextDouble())
+                {
+                    if (E1 < bestsum) { bestsum = E1; bestpath = new List<int>(nextpath1); bestpath.AddRange(nextpath2); }
+                    path1 = nextpath1; path2 = nextpath2;
+                    T *= alpha;
+                }
+                else T *= beta;
+
+                count++;
             }
+
+            Console.WriteLine("SA finish. Count:" + count);
+
+            path = bestpath;
         }
 
-        
+        int SumWeight(List<int> path)
+        {
+            int sum = 0;
+            for (int i = 0; i < path.Count; i++) sum += dest[path[i]].weight;
+            return sum;
+        }
+        int SumCost(List<int> path)
+        {
+            int sum = 0;
+            for (int i = 0; i < path.Count - 1; i++) sum += dest[path[i]].cost[path[i + 1]];
+            return sum;
+        }
 
         void ReadMap(string file)
         {
@@ -182,7 +234,7 @@ namespace Routing2
                     {
                         var line = str.ReadLine();
                         var nodes = line.Split(',');
-                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) });
+                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) - 1 });
                     }
                     dest = dList.ToArray();
                     for (int i = 0; i < dest.Length; i++)
@@ -226,9 +278,11 @@ namespace Routing2
                     for(int i = 0; i < path.Count-1; i++)
                     {
                         stw.Write(dest[path[i]].name+": ");
-                        for (int j = 0; j < dest[path[i]].route[path[i+1]].Count; j++) stw.Write(dest[path[i]].route[path[i+1]][j]+" ");
+                        for (int j = 0; j < dest[path[i]].route[path[i+1]].Count; j++) stw.Write(dest[path[i]].route[path[i+1]][j] + 1 + " ");
                         stw.WriteLine();
                     }
+                    int costsum = 0; for (int i = 0; i < path.Count - 1; i++) costsum += dest[path[i]].cost[path[i + 1]];
+                    stw.WriteLine("TIME: " + costsum /6 +"h " + costsum % 6 * 10 + "m");
                 }
             }
             catch(System.Exception e)
