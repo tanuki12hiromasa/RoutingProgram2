@@ -128,7 +128,7 @@ namespace Routing2
             Console.WriteLine("SA start.");
 
             var bestpath = new List<int>(path1); bestpath.AddRange(path2);
-            int bestsum = SumWeight(bestpath);
+            int bestsum = SumCost(bestpath);
             double T = 1000;
             const double alpha = 0.99999;
             const double beta = 1.000005;
@@ -164,8 +164,9 @@ namespace Routing2
                     else
                     { nextpath1 = new List<int>(path1); nextpath2 = new List<int>(path2); }
                 }
-                var E1 = SumWeight(nextpath1) + SumWeight(nextpath2);
-                var deltaE = E1 - (SumWeight(path1) + SumWeight(path2));
+
+                var E1 = SumCost(nextpath1) + SumCost(nextpath2);
+                var deltaE = E1 - (SumCost(path1) + SumCost(path2));
                 if (deltaE < 0 || Math.Exp(-deltaE / T) > random.NextDouble())
                 {
                     if (E1 < bestsum) { bestsum = E1; bestpath = new List<int>(nextpath1); bestpath.AddRange(nextpath2); }
@@ -185,7 +186,13 @@ namespace Routing2
         int SumWeight(List<int> path)
         {
             int sum = 0;
-            for (int i = 0; i < path.Count; i++) sum += dest[i].weight;
+            for (int i = 0; i < path.Count; i++) sum += dest[path[i]].weight;
+            return sum;
+        }
+        int SumCost(List<int> path)
+        {
+            int sum = 0;
+            for (int i = 0; i < path.Count - 1; i++) sum += dest[path[i]].cost[path[i + 1]];
             return sum;
         }
 
