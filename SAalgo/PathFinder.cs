@@ -128,13 +128,14 @@ namespace Routing2
             Console.WriteLine("SA start.");
 
             var bestpath = new List<int>(path1); bestpath.AddRange(path2);
-            int bestsum = SumWeight(dest, bestpath);
-            double T = 10000;
+            int bestsum = SumWeight(bestpath);
+            double T = 1000;
             const double alpha = 0.99999;
+            const double beta = 1.000005;
 
             var starttime = DateTime.Now;
             var timelimit = new TimeSpan(0, 0, 20);
-            var numofnode = dest.Length - 1;
+            var numofnode = dest.Length;
             var random = new Random(334);
             Int64 count = 0;
             while (DateTime.Now - starttime < timelimit)
@@ -142,7 +143,36 @@ namespace Routing2
                 var nextpath1 = new List<int>(path1);
                 var nextpath2 = new List<int>(path2);
 
-                
+                for(bool okeyflg = false; !okeyflg;) //合法でランダムな次状態を作成
+                {
+                    int transdest;
+                    var fromNum = random.Next(1, numofnode);
+                    var toNum = random.Next(1, numofnode+ 1 );
+
+                    if(fromNum < nextpath1.Count - 1) //移動元から削除
+                    {  transdest = nextpath1[fromNum]; nextpath1.RemoveAt(fromNum); }
+                    else
+                    { transdest = nextpath2[fromNum - (nextpath1.Count - 2)]; nextpath2.RemoveAt(fromNum - (nextpath1.Count - 2)); }
+
+                    if(toNum < nextpath1.Count) //移動先に挿入
+                    { nextpath1.Insert(toNum, transdest); }
+                    else
+                    { nextpath2.Insert(toNum - (nextpath1.Count - 1), transdest); }
+                    
+                    if(SumWeight(nextpath1) <= wCap && SumWeight(nextpath2) <= wCap)
+                         okeyflg = true;
+                    else
+                    { nextpath1 = new List<int>(path1); nextpath2 = new List<int>(path2); }
+                }
+                var E1 = SumWeight(nextpath1) + SumWeight(nextpath2);
+                var deltaE = E1 - (SumWeight(path1) + SumWeight(path2));
+                if (deltaE < 0 || Math.Exp(-deltaE / T) > random.NextDouble())
+                {
+                    if (E1 < bestsum) { bestsum = E1; bestpath = new List<int>(nextpath1); bestpath.AddRange(nextpath2); }
+                    path1 = nextpath1; path2 = nextpath2;
+                    T *= alpha;
+                }
+                else T *= beta;
 
                 count++;
             }
@@ -152,7 +182,7 @@ namespace Routing2
             path = bestpath;
         }
 
-        int SumWeight(Destination[] dest, List<int> path)
+        int SumWeight(List<int> path)
         {
             int sum = 0;
             for (int i = 0; i < path.Count; i++) sum += dest[i].weight;
