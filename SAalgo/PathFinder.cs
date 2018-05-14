@@ -136,7 +136,7 @@ namespace Routing2
             var starttime = DateTime.Now;
             var timelimit = new TimeSpan(0, 0, 20);
             var numofnode = dest.Length;
-            var random = new Random(334);
+            var random = new Random(3882);
             Int64 count = 0;
             while (DateTime.Now - starttime < timelimit)
             {
@@ -282,7 +282,7 @@ namespace Routing2
                         stw.WriteLine();
                     }
                     int costsum = 0; for (int i = 0; i < path.Count - 1; i++) costsum += dest[path[i]].cost[path[i + 1]];
-                    stw.WriteLine("TIME:" + costsum * 10 + " min.");
+                    stw.WriteLine("TIME: " + costsum /6 +"h " + costsum % 6 * 10 + "m");
                 }
             }
             catch(System.Exception e)

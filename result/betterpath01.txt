@@ -23,6 +23,8 @@ F: 29 28
 N: 29 38 47 56 65 74 73 
 TIME:1160 min.
 
+
 //SAalgo
+//19h 20m
 //T=1000 alpha=0.99999 beta=1.000005
 //timelimit=30s
