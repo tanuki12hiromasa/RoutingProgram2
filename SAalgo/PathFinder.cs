@@ -169,7 +169,10 @@ namespace Routing2
                 var deltaE = E1 - (SumCost(path1) + SumCost(path2));
                 if (deltaE < 0 || Math.Exp(-deltaE / T) > random.NextDouble())
                 {
-                    if (E1 < bestsum) { bestsum = E1; bestpath = new List<int>(nextpath1); bestpath.AddRange(nextpath2); }
+                    if (E1 < bestsum) {
+                        bestsum = E1; bestpath = new List<int>(nextpath1);
+                        bestpath.RemoveAt(bestpath.Count - 1);
+                        bestpath.AddRange(nextpath2); }
                     path1 = nextpath1; path2 = nextpath2;
                     T *= alpha;
                 }
@@ -234,7 +237,7 @@ namespace Routing2
                     {
                         var line = str.ReadLine();
                         var nodes = line.Split(',');
-                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) - 1 });
+                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) - 1, weight= int.Parse(nodes[2]) });
                     }
                     dest = dList.ToArray();
                     for (int i = 0; i < dest.Length; i++)
@@ -281,6 +284,7 @@ namespace Routing2
                         for (int j = 0; j < dest[path[i]].route[path[i+1]].Count; j++) stw.Write(dest[path[i]].route[path[i+1]][j] + 1 + " ");
                         stw.WriteLine();
                     }
+                    stw.WriteLine(dest[path[path.Count-1]].name);
                     int costsum = 0; for (int i = 0; i < path.Count - 1; i++) costsum += dest[path[i]].cost[path[i + 1]];
                     stw.WriteLine("TIME: " + costsum /6 +"h " + costsum % 6 * 10 + "m");
                 }
