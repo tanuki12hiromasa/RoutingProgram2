@@ -6,13 +6,15 @@ using System.IO;
 namespace Routing2
 {
     public class Destination
-        {
-            public string name;
-            public int pos;
-            public int[] cost;
-            public List<int>[] route;
-            public int weight = 80;
-        }
+    {
+        public string name;
+        public int pos;
+        public int[] cost;
+        public List<int>[] route;
+        public int weight = 80;
+        public bool AM = true;
+        public bool PM = true;
+    }
 
     public class Node { public int pos, prev, cost; };
 
@@ -128,7 +130,7 @@ namespace Routing2
             Console.WriteLine("SA start.");
 
             var bestpath = new List<int>(path1); bestpath.AddRange(path2);
-            int bestsum = SumCost(bestpath);
+            int bestsum = SumCost(bestpath, 9 * 6);
             double T = 1000;
             const double alpha = 0.99999;
             const double beta = 1.000005;
@@ -192,10 +194,32 @@ namespace Routing2
             for (int i = 0; i < path.Count; i++) sum += dest[path[i]].weight;
             return sum;
         }
-        int SumCost(List<int> path)
+        int SumCost(List<int> path,int starttime) //timeはAM0:00を始点とし、10minで1単位であると定義する。
         {
             int sum = 0;
-            for (int i = 0; i < path.Count - 1; i++) sum += dest[path[i]].cost[path[i + 1]];
+            var time = starttime;
+            for (int i = 0; i < path.Count - 1; i++)
+            {
+                time = (time + dest[path[i]].cost[path[i + 1]]) % (6 * 24);
+                sum += dest[path[i]].cost[path[i + 1]];
+                if (time < 12 * 6)
+                {
+                    if (!dest[path[i]].AM)
+                    {
+                        sum += 12 * 6 - time;
+                        time = 12 * 6;
+                    }
+                }
+                else
+                {
+                    if (!dest[path[i]].AM)
+                    {
+                        sum += 24 * 6 - time;
+                        time = 0;
+                    }
+                }
+                
+            } 
             return sum;
         }
 
