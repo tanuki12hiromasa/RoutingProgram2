@@ -156,11 +156,18 @@ namespace Routing2
 
                 for(bool okeyflg = false; !okeyflg;) //合法でランダムな次状態を作成
                 {
-                    var fromNum = random.Next(1, numofnode);
-                    var toNum = random.Next(1, numofnode );
+                    do {
+                        var fromNum = random.Next(1, numofnode);
+                        var toNum = random.Next(1, numofnode);
+                        int transdest = path[fromNum];
+                        path.RemoveAt(fromNum);
+                        path.Insert(toNum, transdest);
+                    } while (0.6 > random.NextDouble());
+                    
 
                     //順番の入れ替え
-                    nextpath.Reverse(Math.Min(fromNum, toNum), Math.Abs(fromNum - toNum));
+                    //nextpath.Reverse(Math.Min(fromNum, toNum), Math.Abs(fromNum - toNum));
+
 
                     if( MaxSumWeight(nextpath) <= wCap)
                          okeyflg = true;
