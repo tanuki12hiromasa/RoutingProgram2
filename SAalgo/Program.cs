@@ -7,7 +7,7 @@ namespace Routing2
         const int width = 9;
         const int height = 9;
         const string mapfile = "neighbor_mat3.csv";
-        const string destfile = "destination3.csv";
+        const string destfile = "destination4.csv";
         static void Main(string[] args)
         {
             Console.WriteLine(System.IO.Directory.GetCurrentDirectory());
