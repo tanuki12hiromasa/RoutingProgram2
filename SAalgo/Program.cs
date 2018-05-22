@@ -10,8 +10,9 @@ namespace Routing2
         const string destfile = "destination4.csv";
         static void Main(string[] args)
         {
+            bool finalReturn = false;
             Console.WriteLine(System.IO.Directory.GetCurrentDirectory());
-            var pf = new PathFinder(width, height);
+            var pf = new PathFinder(width, height, finalReturn);
             pf.ex(mapfile, destfile);
         }
     }
