@@ -21,20 +21,26 @@ namespace Routing2
 
     public class PathFinder
     {
-        int _width;int _height;
+        int width;int height;
         int nCross; //交差点の数 width*height 
         int[,] map; //グラフ（地図）データ
         Destination[] dest; //配達地点　並びはcsvの順
         List<int> path; //配達順
         int startpoint; //開始点/終着点
         int[] isDest; //その場所がDestかどうか(Destならその番号、違うなら-1)
-        int culctime = 20; //計算時間制限(秒)
+        const int culctime = 20; //計算時間制限(秒)
+        const int writecount = 50000; //SA中の報告頻度の設定
         protected string outfile = "betterpath.txt";
+        bool finalReturn;
+        const double T0 = 500;
+        const double alpha = 0.99999;
+        const double beta = 1.000005;
 
-        public PathFinder(int width,int height)
+        public PathFinder(int width,int height,bool finalReturn = true)
         {
-            _width = width; _height = height;
-            nCross = _width * _height;
+            this.width = width; this.height = height;
+            this.finalReturn = finalReturn;
+            nCross = width * height;
             map = new int[nCross, nCross];
             isDest = new int[nCross];
             for (int i =0;i<isDest.Length;i++) isDest[i] = -1;
@@ -45,7 +51,7 @@ namespace Routing2
             ReadMap(mapfile);
             ReadDest(destsfile);
             findRoute();
-            makePath(dest, startpoint, 1000 , out path);
+            makePath(dest, startpoint, 1000 , finalReturn, out path);
             WritePath();
             return 0;
         }
@@ -96,7 +102,7 @@ namespace Routing2
             WriteRoute();
         }
 
-        virtual protected void makePath(Destination[] dest,int startpoint,int wCap,out List<int> outpath)
+        virtual protected void makePath(Destination[] dest,int startpoint,int wCap,bool SPreturn,out List<int> outpath)
         {
             List<int> path;
 
@@ -129,9 +135,9 @@ namespace Routing2
                         tpath.Add(mindest);
                         cur = mindest;
                     }
-                    tpath.Add(startpoint);
+                    if(SPreturn) tpath.Add(startpoint);
                 }
-                path1.RemoveAt(path1.Count - 1);
+                if(SPreturn) path1.RemoveAt(path1.Count - 1);
                 path = path1; path1.AddRange(path2);
                 for (int i = 0; i < path.Count; i++) Console.Write(dest[path[i]].name + "-");
                 Console.WriteLine("\nTime:" + SumCost(path) * 10 + "min");
@@ -141,14 +147,12 @@ namespace Routing2
             Console.WriteLine("SA start.");
             var bestpath = new List<int>(path);
             int bestsum = SumCost(bestpath, 9 * 6);
-            double T = 1000;
-            const double alpha = 0.99999;
-            const double beta = 1.000005;
+            var T = T0;
 
             var starttime = DateTime.Now;
             var timelimit = new TimeSpan(0, 0, culctime);
-            var numofnode = dest.Length;
-            var random = new Random(3882);
+            var numofnode = dest.Length + 1;
+            var random = new Random(195463);
             Int64 count = 0;
             while (DateTime.Now - starttime < timelimit)
             {
@@ -162,7 +166,7 @@ namespace Routing2
                         int transdest = path[fromNum];
                         path.RemoveAt(fromNum);
                         path.Insert(toNum, transdest);
-                    } while (0.6 > random.NextDouble());
+                    } while (0.8 > random.NextDouble());
                     
 
                     //順番の入れ替え
@@ -189,7 +193,7 @@ namespace Routing2
                 else T *= beta;
 
                 count++;
-                if (count % 20000 == 0) Console.WriteLine("count=" + count + " T=" + T + " cost:" + bestsum);
+                if (count % writecount == 0) Console.WriteLine("count=" + count + " T=" + T + " cost:" + bestsum);
             }
 
             Console.WriteLine("SA finish. Count:" + count);
@@ -330,6 +334,7 @@ namespace Routing2
                     stw.WriteLine(dest[path[path.Count-1]].name);
                     int costsum = SumCost(path);
                     stw.WriteLine("TIME: " + costsum /6 +"h " + costsum % 6 * 10 + "m");
+                    stw.WriteLine("T0=" + T0 + ", alpha=" + alpha + ", beta=" + beta + "\ntimelimit: " + culctime + "s");
                 }
             }
             catch(System.Exception e)
