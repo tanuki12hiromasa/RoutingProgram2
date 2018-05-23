@@ -105,6 +105,7 @@ namespace Routing2
         virtual protected void makePath(Destination[] dest,int startpoint,int wCap,bool SPreturn,out List<int> outpath)
         {
             List<int> path;
+            
 
             //まず暫定解を作成する
             {
@@ -151,8 +152,8 @@ namespace Routing2
 
             var starttime = DateTime.Now;
             var timelimit = new TimeSpan(0, 0, culctime);
-            var numofnode = dest.Length + 1;
-            var random = new Random(195463);
+            var numofnode = dest.Length;
+            var random = new Random(92549);
             Int64 count = 0;
             while (DateTime.Now - starttime < timelimit)
             {
@@ -160,20 +161,37 @@ namespace Routing2
 
                 for(bool okeyflg = false; !okeyflg;) //合法でランダムな次状態を作成
                 {
-                    do {
+                    //移動、入れ替え、逆順のどれかをランダムに発生させる。
+                    var dice = random.NextDouble();
+                    if (dice > 0.5)
+                    {
                         var fromNum = random.Next(1, numofnode);
                         var toNum = random.Next(1, numofnode);
                         int transdest = path[fromNum];
-                        path.RemoveAt(fromNum);
-                        path.Insert(toNum, transdest);
-                    } while (0.8 > random.NextDouble());
-                    
+                        path[fromNum] = path[toNum];
+                        path[toNum] = transdest;
+                    }
+                    else if (dice > 0.3)
+                    {
+                        do
+                        {
+                            var fromNum = random.Next(1, numofnode + 1);
+                            var toNum = random.Next(1, numofnode + 1);
+                            int transdest = path[fromNum];
+                            path.RemoveAt(fromNum);
+                            path.Insert(toNum, transdest);
+                        } while (0.4 > random.NextDouble());
 
-                    //順番の入れ替え
-                    //nextpath.Reverse(Math.Min(fromNum, toNum), Math.Abs(fromNum - toNum));
+                    }
+                    else
+                    {
+                        //順番の入れ替え
+                        var fromNum = random.Next(1, numofnode + 1);
+                        var toNum = random.Next(1, numofnode + 1);
+                        nextpath.Reverse(Math.Min(fromNum, toNum), Math.Abs(fromNum - toNum));
+                    }
 
-
-                    if( MaxSumWeight(nextpath) <= wCap)
+                    if ( MaxSumWeight(nextpath) <= wCap)
                          okeyflg = true;
                     else
                          nextpath = new List<int>(path);
@@ -282,9 +300,10 @@ namespace Routing2
                     {
                         var line = str.ReadLine();
                         var nodes = line.Split(',');
-                        var am = true; var pm = true;
+                        var _weight = 50; var am = true; var pm = true;
+                        if (nodes.Length > 2) _weight = int.Parse(nodes[2]);
                         if (nodes.Length > 3) { if (nodes[3] == "AM") pm = false; else if (nodes[3] == "PM") am = false; }
-                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) - 1, weight = int.Parse(nodes[2]), AM = am, PM = pm });
+                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) - 1, weight = _weight, AM = am, PM = pm });
                     }
                     dest = dList.ToArray();
                     for (int i = 0; i < dest.Length; i++)
