@@ -28,9 +28,10 @@ namespace Routing2
         List<int> path; //配達順
         int startpoint; //開始点/終着点
         int[] isDest; //その場所がDestかどうか(Destならその番号、違うなら-1)
-        const int culctime = 20; //計算時間制限(秒)
-        const int writecount = 50000; //SA中の報告頻度の設定
-        protected string outfile = "betterpath.txt";
+        const int culctime = 6; //計算時間制限(秒)
+        const int countlimit = 100000;
+        const int writecount = 500; //SA中の報告頻度の設定
+        protected string outfile = "result\\betterpath.txt";
         bool finalReturn;
         const double T0 = 500;
         const double alpha = 0.99999;
@@ -155,63 +156,79 @@ namespace Routing2
             var numofnode = dest.Length;
             var random = new Random(92549);
             Int64 count = 0;
-            while (DateTime.Now - starttime < timelimit)
+            try
             {
-                var nextpath = new List<int>(path);
-
-                for(bool okeyflg = false; !okeyflg;) //合法でランダムな次状態を作成
+                using (var beststw = new System.IO.StreamWriter("result\\bestgraph.dat"))
+                using (var curstw = new System.IO.StreamWriter("result\\curgraph.dat"))
                 {
-                    //移動、入れ替え、逆順のどれかをランダムに発生させる。
-                    var dice = random.NextDouble();
-                    if (dice > 0.5)
+                    while (DateTime.Now - starttime < timelimit)
                     {
-                        var fromNum = random.Next(1, numofnode);
-                        var toNum = random.Next(1, numofnode);
-                        int transdest = path[fromNum];
-                        path[fromNum] = path[toNum];
-                        path[toNum] = transdest;
-                    }
-                    else if (dice > 0.3)
-                    {
-                        do
+                        var nextpath = new List<int>(path);
+
+                        for (bool okeyflg = false; !okeyflg;) //合法でランダムな次状態を作成
                         {
-                            var fromNum = random.Next(1, numofnode + 1);
-                            var toNum = random.Next(1, numofnode + 1);
-                            int transdest = path[fromNum];
-                            path.RemoveAt(fromNum);
-                            path.Insert(toNum, transdest);
-                        } while (0.4 > random.NextDouble());
+                            //移動、入れ替え、逆順のどれかをランダムに発生させる。
+                            var dice = random.NextDouble();
+                            if (dice > 0.5)
+                            {
+                                var fromNum = random.Next(1, numofnode);
+                                var toNum = random.Next(1, numofnode);
+                                int transdest = path[fromNum];
+                                path[fromNum] = path[toNum];
+                                path[toNum] = transdest;
+                            }
+                            else if (dice > 0.3)
+                            {
+                                do
+                                {
+                                    var fromNum = random.Next(1, numofnode + 1);
+                                    var toNum = random.Next(1, numofnode + 1);
+                                    int transdest = path[fromNum];
+                                    path.RemoveAt(fromNum);
+                                    path.Insert(toNum, transdest);
+                                } while (0.4 > random.NextDouble());
 
-                    }
-                    else
-                    {
-                        //順番の入れ替え
-                        var fromNum = random.Next(1, numofnode + 1);
-                        var toNum = random.Next(1, numofnode + 1);
-                        nextpath.Reverse(Math.Min(fromNum, toNum), Math.Abs(fromNum - toNum));
-                    }
+                            }
+                            else
+                            {
+                                //順番の入れ替え
+                                var fromNum = random.Next(1, numofnode + 1);
+                                var toNum = random.Next(1, numofnode + 1);
+                                nextpath.Reverse(Math.Min(fromNum, toNum), Math.Abs(fromNum - toNum));
+                            }
 
-                    if ( MaxSumWeight(nextpath) <= wCap)
-                         okeyflg = true;
-                    else
-                         nextpath = new List<int>(path);
+                            if (MaxSumWeight(nextpath) <= wCap)
+                                okeyflg = true;
+                            else
+                                nextpath = new List<int>(path);
+                        }
+
+                        var E1 = SumCost(nextpath);
+                        var deltaE = E1 - SumCost(path);
+                        if (deltaE < 0 || Math.Exp(-deltaE / T) > random.NextDouble())
+                        {
+                            if (E1 < bestsum)
+                            {
+                                bestsum = E1; bestpath = new List<int>(nextpath);
+                            }
+                            path = nextpath;
+                            T *= alpha;
+                        }
+                        else T *= beta;
+
+                        count++;
+                        if (count % writecount * 100 == 0) Console.WriteLine("count=" + count + " T=" + T + " cost:" + bestsum);
+                        if (count % writecount == 0)
+                        {
+                            beststw.WriteLine(count + " " + bestsum);
+                            curstw.WriteLine(count + " " + SumCost(path));
+                        }
+                    }
                 }
-
-                var E1 = SumCost(nextpath);
-                var deltaE = E1 - SumCost(path);
-                if (deltaE < 0 || Math.Exp(-deltaE / T) > random.NextDouble())
-                {
-                    if (E1 < bestsum)
-                    {
-                        bestsum = E1; bestpath = new List<int>(nextpath);
-                    }
-                    path = nextpath;
-                    T *= alpha;
-                }
-                else T *= beta;
-
-                count++;
-                if (count % writecount == 0) Console.WriteLine("count=" + count + " T=" + T + " cost:" + bestsum);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
             }
 
             Console.WriteLine("SA finish. Count:" + count);
