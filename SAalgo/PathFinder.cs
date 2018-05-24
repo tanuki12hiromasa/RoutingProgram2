@@ -28,15 +28,16 @@ namespace Routing2
         List<int> path; //配達順
         int startpoint; //開始点/終着点
         int[] isDest; //その場所がDestかどうか(Destならその番号、違うなら-1)
-        const int culctime = 8; //計算時間制限(秒)
-        const double Tend = 0.0001;
+        //const int culctime = 8; //計算時間制限(秒)
         const int writecount = 500; //SA中の報告頻度の設定
         protected string outfile = "result\\betterpath.txt";
-        bool finalReturn;
+        bool finalReturn; //最後帰着するかどうか
         const double T0 = 500;
-        const double alpha = 0.99999;
-        const double beta = 1.000005;
-        const double changeRatio = 5; //単体移動　近傍状態の生成方法の確率。
+        const double Tend = 0.001;
+        const double alpha = 0.999;
+        const int timesInTern = 40;
+        //↓1-3 近傍状態の生成確率の比
+        const double changeRatio = 5; //単体移動　
         const double insertRatio = 3; //二者入れ替え
         const double reverseRatio = 2;//二者間逆順
 
@@ -154,17 +155,15 @@ namespace Routing2
             int bestsum = SumCost(bestpath, 9 * 6);
             var T = T0;
 
-            var starttime = DateTime.Now;
-            var timelimit = new TimeSpan(0, 0, culctime);
             var numofnode = dest.Length;
-            var random = new Random(902549);
+            var random = new Random(12548);
             Int64 count = 0;
             try
             {
                 using (var beststw = new System.IO.StreamWriter("result\\bestgraph.dat"))
                 using (var curstw = new System.IO.StreamWriter("result\\curgraph.dat"))
                 {
-                    while (DateTime.Now - starttime < timelimit && T > Tend)
+                    while (T > Tend)
                     {
                         var nextpath = new List<int>(path);
 
@@ -215,11 +214,12 @@ namespace Routing2
                                 bestsum = E1; bestpath = new List<int>(nextpath);
                             }
                             path = nextpath;
-                            T *= alpha;
                         }
-                        //else T *= beta;
 
                         count++;
+                        if (count % timesInTern == 0)
+                            T *= alpha;
+
                         if (count % (writecount * 100) == 0) Console.WriteLine("count=" + count + " T=" + T + " cost:" + bestsum);
                         if (count % writecount == 0)
                         {
@@ -374,7 +374,7 @@ namespace Routing2
                     int costsum = SumCost(path);
                     stw.WriteLine("TIME: " + costsum /6 +"h " + costsum % 6 * 10 + "m");
                     stw.WriteLine("入替:移動:逆順 = " + changeRatio + ":" + insertRatio + ":" + reverseRatio);
-                    stw.WriteLine("T0=" + T0 + ", alpha=" + alpha + ", beta=" + beta + "\ntimelimit: " + culctime + "s");
+                    stw.WriteLine("T0=" + T0 + ", alpha=" + alpha + ", =" + timesInTern);
                 }
             }
             catch(System.Exception e)
