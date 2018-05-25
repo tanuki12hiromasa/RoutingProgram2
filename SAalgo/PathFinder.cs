@@ -30,25 +30,31 @@ namespace Routing2
         int[] isDest; //その場所がDestかどうか(Destならその番号、違うなら-1)
         //const int culctime = 8; //計算時間制限(秒)
         const int writecount = 500; //SA中の報告頻度の設定
-        protected string outfile = "result\\betterpath.txt";
+        string outdir;
+        protected string outfile;
         bool finalReturn; //最後帰着するかどうか
+        int seed = 334;
         const double T0 = 500;
         const double Tend = 0.001;
-        const double alpha = 0.999;
-        const int timesInTern = 40;
+        double alpha = Math.Pow(0.9999, 20000);
+        const int timesInTern = 5 * 20000;
         //↓1-3 近傍状態の生成確率の比
         const double changeRatio = 5; //単体移動　
         const double insertRatio = 3; //二者入れ替え
         const double reverseRatio = 2;//二者間逆順
 
-        public PathFinder(int width,int height,bool finalReturn = true)
+        public PathFinder(int randomseed,int width,int height,bool finalReturn = true, string outDirectory = "result")
         {
+            outdir = outDirectory;
+            outfile = outdir + "\\betterpath.txt";
+            seed = randomseed;
             this.width = width; this.height = height;
             this.finalReturn = finalReturn;
             nCross = width * height;
             map = new int[nCross, nCross];
             isDest = new int[nCross];
             for (int i =0;i<isDest.Length;i++) isDest[i] = -1;
+            if (!Directory.Exists(outdir)) Directory.CreateDirectory(outdir);
         }
 
         public int ex(string mapfile,string destsfile) //一連の計算を行う
@@ -156,12 +162,13 @@ namespace Routing2
             var T = T0;
 
             var numofnode = dest.Length;
-            var random = new Random(12548);
+            var random = new Random(seed);
             Int64 count = 0;
             try
             {
-                using (var beststw = new System.IO.StreamWriter("result\\bestgraph.dat"))
-                using (var curstw = new System.IO.StreamWriter("result\\curgraph.dat"))
+                using (var beststw = new System.IO.StreamWriter(outdir + "\\bestgraph.dat"))
+                using (var curstw = new System.IO.StreamWriter(outdir + "\\curgraph.dat"))
+                using (var thermostw = new System.IO.StreamWriter(outdir + "\\thermo.dat"))
                 {
                     while (T > Tend)
                     {
@@ -169,7 +176,7 @@ namespace Routing2
 
                         for (bool okeyflg = false; !okeyflg;) //合法でランダムな次状態を作成
                         {
-                            //移動、入れ替え、逆順のどれかをランダムに発生させる。
+                            //移動、互換、逆順のどれかをランダムに発生させる。
                             var dice = random.NextDouble();
                             if (dice > (insertRatio + reverseRatio) / (changeRatio + insertRatio + reverseRatio))
                             {
@@ -225,6 +232,7 @@ namespace Routing2
                         {
                             beststw.WriteLine(count + " " + bestsum);
                             curstw.WriteLine(count + " " + SumCost(path));
+                            thermostw.WriteLine(count + " " + string.Format("{0:f3}", T));
                         }
                     }
                 }
@@ -374,7 +382,8 @@ namespace Routing2
                     int costsum = SumCost(path);
                     stw.WriteLine("TIME: " + costsum /6 +"h " + costsum % 6 * 10 + "m");
                     stw.WriteLine("入替:移動:逆順 = " + changeRatio + ":" + insertRatio + ":" + reverseRatio);
-                    stw.WriteLine("T0=" + T0 + ", alpha=" + alpha + ", =" + timesInTern);
+                    stw.WriteLine("T0=" + T0 + ", alpha=" + alpha + ", 平衡時ループ数=" + timesInTern + ", Tend=" + Tend);
+                    stw.WriteLine("randomseed=" + seed);
                 }
             }
             catch(System.Exception e)
