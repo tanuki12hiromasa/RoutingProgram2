@@ -29,19 +29,19 @@ namespace Routing2
         int startpoint; //開始点/終着点
         int[] isDest; //その場所がDestかどうか(Destならその番号、違うなら-1)
         //const int culctime = 8; //計算時間制限(秒)
-        const int writecount = 75; //SA中の報告頻度の設定
+        const int writecount = 50; //SA中の報告頻度の設定
         string outdir;
         protected string outfile;
         bool finalReturn; //最後帰着するかどうか
         int seed = 334;
-        const double T0 = 10000; //10000
-        const double Tend = 0.1;
+        const double T0 = 500; //500
+        const double Tend = 0.01;
         const double alpha = 0.9999; //0.9999
         const int timesInTern = 10; //10
         //↓1-3 近傍状態の生成確率の比
-        const double changeRatio = 1; //二者入れ替え
-        const double insertRatio = 0; //単体移動
-        const double reverseRatio = 0;//二者間逆順
+        const double changeRatio = 2; //二者入れ替え
+        const double insertRatio = 3; //単体移動
+        const double reverseRatio = 5;//二者間逆順
 
         public PathFinder(int randomseed,int width,int height,bool finalReturn = true, string outDirectory = "result")
         {
