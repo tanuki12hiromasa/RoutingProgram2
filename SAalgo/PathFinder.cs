@@ -29,19 +29,19 @@ namespace Routing2
         int startpoint; //開始点/終着点
         int[] isDest; //その場所がDestかどうか(Destならその番号、違うなら-1)
         //const int culctime = 8; //計算時間制限(秒)
-        const int writecount = 500; //SA中の報告頻度の設定
+        const int writecount = 75; //SA中の報告頻度の設定
         string outdir;
         protected string outfile;
         bool finalReturn; //最後帰着するかどうか
         int seed = 334;
-        const double T0 = 500;
-        const double Tend = 0.001;
-        double alpha = Math.Pow(0.9999, 20000);
-        const int timesInTern = 5 * 20000;
+        const double T0 = 10000; //10000
+        const double Tend = 0.1;
+        const double alpha = 0.9999; //0.9999
+        const int timesInTern = 10; //10
         //↓1-3 近傍状態の生成確率の比
-        const double changeRatio = 5; //単体移動　
-        const double insertRatio = 3; //二者入れ替え
-        const double reverseRatio = 2;//二者間逆順
+        const double changeRatio = 1; //二者入れ替え
+        const double insertRatio = 0; //単体移動
+        const double reverseRatio = 0;//二者間逆順
 
         public PathFinder(int randomseed,int width,int height,bool finalReturn = true, string outDirectory = "result")
         {
@@ -131,10 +131,10 @@ namespace Routing2
                     int cur = startpoint;
                     var tpath = (t == 1) ? path1 : path2;
                     var allsumweight = dest.Sum(d => d.weight);
-                    while (tpath.Sum(i => dest[i].weight) <= allsumweight / 2 && yetList.Count > 0)
+                    while (tpath.Sum(i => dest[i].weight) <= allsumweight / 2 && yetList.Count > 0) 
                     {
-                        int mincost = int.MaxValue;
-                        int mincostsp = int.MaxValue;
+                        int mincost = int.MaxValue; 
+                        int mincostsp = int.MaxValue; 
                         int mindest = startpoint;
                         for (int i = 0; i < yetList.Count; i++)
                         {
@@ -182,9 +182,9 @@ namespace Routing2
                             {
                                 var fromNum = random.Next(1, numofnode);
                                 var toNum = random.Next(1, numofnode);
-                                int transdest = path[fromNum];
-                                path[fromNum] = path[toNum];
-                                path[toNum] = transdest;
+                                int transdest = nextpath[fromNum];
+                                nextpath[fromNum] = nextpath[toNum];
+                                nextpath[toNum] = transdest;
                             }
                             else if (dice > reverseRatio / (changeRatio + insertRatio + reverseRatio))
                             {
@@ -192,9 +192,9 @@ namespace Routing2
                                 {
                                     var fromNum = random.Next(1, numofnode + 1);
                                     var toNum = random.Next(1, numofnode + 1);
-                                    int transdest = path[fromNum];
-                                    path.RemoveAt(fromNum);
-                                    path.Insert(toNum, transdest);
+                                    int transdest = nextpath[fromNum];
+                                    nextpath.RemoveAt(fromNum);
+                                    nextpath.Insert(toNum, transdest);
                                 } while (0.4 > random.NextDouble());
 
                             }
@@ -304,11 +304,11 @@ namespace Routing2
                     }
                 }
                 System.Console.WriteLine("reading map done");
-                for(int i = 0; i < nCross; i++)
+                /*for(int i = 0; i < nCross; i++) //デバッグ用
                 {
                     for (int j = 0; j < nCross; j++) System.Console.Write(map[i, j] + " ");
                     System.Console.Write('\n');
-                }
+                }*/
             }
             catch(System.Exception e)
             {
