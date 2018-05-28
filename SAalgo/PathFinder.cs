@@ -34,14 +34,15 @@ namespace Routing2
         protected string outfile;
         bool finalReturn; //最後帰着するかどうか
         int seed = 334;
-        const double T0 = 500; //500
+        const double T0 = 0.5; //500
         const double Tend = 0.01;
-        const double alpha = 0.9999; //0.9999
+        double alpha = Math.Pow(Tend / T0, 1/108000.0); //0.9999
+        double alpha2 = (Tend - T0) / 108000.0;
         const int timesInTern = 10; //10
         //↓1-3 近傍状態の生成確率の比
-        const double changeRatio = 2; //二者入れ替え
+        const double changeRatio = 0; //二者入れ替え
         const double insertRatio = 3; //単体移動
-        const double reverseRatio = 5;//二者間逆順
+        const double reverseRatio = 0;//二者間逆順
 
         public PathFinder(int randomseed,int width,int height,bool finalReturn = true, string outDirectory = "result")
         {
@@ -225,7 +226,7 @@ namespace Routing2
 
                         count++;
                         if (count % timesInTern == 0)
-                            T *= alpha;
+                            T += alpha2;//T *= alpha;
 
                         if (count % (writecount * 100) == 0) Console.WriteLine("count=" + count + " T=" + T + " cost:" + bestsum);
                         if (count % writecount == 0)
