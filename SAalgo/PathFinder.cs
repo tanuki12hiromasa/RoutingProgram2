@@ -36,8 +36,8 @@ namespace Routing2
         int seed = 334;
         const double T0 = 500; //500
         const double Tend = 0.01;
-        double alpha = 0.9999;//Math.Pow(Tend / T0, 1/108000.0); //0.9999
-        double alpha2 = (Tend - T0) / 108000.0;
+        double alpha = 0.9999; //Math.Pow(Tend / T0, 1/108000.0); //0.9999
+        //double alpha2 = (Tend - T0) / 108000.0;
         const int timesInTern = 10; //10
         //↓1-3 近傍状態の生成確率の比
         const double changeRatio = 1; //二者入れ替え
@@ -226,7 +226,8 @@ namespace Routing2
 
                         count++;
                         if (count % timesInTern == 0)
-                            T *= alpha;//T += alpha2;
+                            T *= alpha;
+                            //T += alpha2;
 
                         if (count % (writecount * 100) == 0) Console.WriteLine("count=" + count + " T=" + T + " cost:" + bestsum);
                         if (count % writecount == 0)
