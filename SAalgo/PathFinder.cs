@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
 using System.Linq;
 
@@ -28,22 +27,34 @@ namespace Routing2
         List<int> path; //配達順
         int startpoint; //開始点/終着点
         int[] isDest; //その場所がDestかどうか(Destならその番号、違うなら-1)
-        const int culctime = 20; //計算時間制限(秒)
-        const int writecount = 50000; //SA中の報告頻度の設定
-        protected string outfile = "betterpath.txt";
-        bool finalReturn;
-        const double T0 = 500;
-        const double alpha = 0.99999;
-        const double beta = 1.000005;
+        //const int culctime = 8; //計算時間制限(秒)
+        const int writecount = 100; //SA中の報告頻度の設定
+        string outdir;
+        protected string outfile;
+        bool finalReturn; //最後帰着するかどうか
+        int seed = 334;
+        const double T0 = 500;//初期温度
+        const double Tend = 0.01;//終了温度
+        double alpha = 0.9999;//Math.Pow(Tend / T0, 1/108000.0);
+        //double alpha2 = (Tend - T0) / 108000.0;
+        const int timesInTern = 10; //熱平衡状態でのループ数
+        //↓1-3 近傍状態の生成確率の比
+        const double changeRatio = 1; //二者入れ替え
+        const double insertRatio = 1; //単体移動
+        const double reverseRatio = 1;//二者間逆順
 
-        public PathFinder(int width,int height,bool finalReturn = true)
+        public PathFinder(int randomseed,int width,int height,bool finalReturn = true, string outDirectory = "result")
         {
+            outdir = outDirectory;
+            outfile = outdir + "\\betterpath.txt";
+            seed = randomseed;
             this.width = width; this.height = height;
             this.finalReturn = finalReturn;
             nCross = width * height;
             map = new int[nCross, nCross];
             isDest = new int[nCross];
             for (int i =0;i<isDest.Length;i++) isDest[i] = -1;
+            if (!Directory.Exists(outdir)) Directory.CreateDirectory(outdir);
         }
 
         public int ex(string mapfile,string destsfile) //一連の計算を行う
@@ -105,6 +116,7 @@ namespace Routing2
         virtual protected void makePath(Destination[] dest,int startpoint,int wCap,bool SPreturn,out List<int> outpath)
         {
             List<int> path;
+            
 
             //まず暫定解を作成する
             {
@@ -119,10 +131,10 @@ namespace Routing2
                     int cur = startpoint;
                     var tpath = (t == 1) ? path1 : path2;
                     var allsumweight = dest.Sum(d => d.weight);
-                    while (tpath.Sum(i => dest[i].weight) <= allsumweight / 2 && yetList.Count > 0)
+                    while (tpath.Sum(i => dest[i].weight) <= allsumweight / 2 && yetList.Count > 0) 
                     {
-                        int mincost = int.MaxValue;
-                        int mincostsp = int.MaxValue;
+                        int mincost = int.MaxValue; 
+                        int mincostsp = int.MaxValue; 
                         int mindest = startpoint;
                         for (int i = 0; i < yetList.Count; i++)
                         {
@@ -149,51 +161,86 @@ namespace Routing2
             int bestsum = SumCost(bestpath, 9 * 6);
             var T = T0;
 
-            var starttime = DateTime.Now;
-            var timelimit = new TimeSpan(0, 0, culctime);
-            var numofnode = dest.Length + 1;
-            var random = new Random(195463);
+            var numofnode = dest.Length;
+            var random = new Random(seed);
             Int64 count = 0;
-            while (DateTime.Now - starttime < timelimit)
+            try
             {
-                var nextpath = new List<int>(path);
-
-                for(bool okeyflg = false; !okeyflg;) //合法でランダムな次状態を作成
+                using (var beststw = new System.IO.StreamWriter(outdir + "\\bestgraph.dat"))
+                using (var curstw = new System.IO.StreamWriter(outdir + "\\curgraph.dat"))
+                using (var thermostw = new System.IO.StreamWriter(outdir + "\\thermo.dat"))
                 {
-                    do {
-                        var fromNum = random.Next(1, numofnode);
-                        var toNum = random.Next(1, numofnode);
-                        int transdest = path[fromNum];
-                        path.RemoveAt(fromNum);
-                        path.Insert(toNum, transdest);
-                    } while (0.8 > random.NextDouble());
-                    
-
-                    //順番の入れ替え
-                    //nextpath.Reverse(Math.Min(fromNum, toNum), Math.Abs(fromNum - toNum));
-
-
-                    if( MaxSumWeight(nextpath) <= wCap)
-                         okeyflg = true;
-                    else
-                         nextpath = new List<int>(path);
-                }
-
-                var E1 = SumCost(nextpath);
-                var deltaE = E1 - SumCost(path);
-                if (deltaE < 0 || Math.Exp(-deltaE / T) > random.NextDouble())
-                {
-                    if (E1 < bestsum)
+                    while (T > Tend)
                     {
-                        bestsum = E1; bestpath = new List<int>(nextpath);
-                    }
-                    path = nextpath;
-                    T *= alpha;
-                }
-                else T *= beta;
+                        var nextpath = new List<int>(path);
 
-                count++;
-                if (count % writecount == 0) Console.WriteLine("count=" + count + " T=" + T + " cost:" + bestsum);
+                        for (bool okeyflg = false; !okeyflg;) //合法でランダムな次状態を作成
+                        {
+                            //移動、互換、逆順のどれかをランダムに発生させる。
+                            var dice = random.NextDouble();
+                            if (dice > (insertRatio + reverseRatio) / (changeRatio + insertRatio + reverseRatio))
+                            {
+                                var fromNum = random.Next(1, numofnode);
+                                var toNum = random.Next(1, numofnode);
+                                int transdest = nextpath[fromNum];
+                                nextpath[fromNum] = nextpath[toNum];
+                                nextpath[toNum] = transdest;
+                            }
+                            else if (dice > reverseRatio / (changeRatio + insertRatio + reverseRatio))
+                            {
+                                do
+                                {
+                                    var fromNum = random.Next(1, numofnode + 1);
+                                    var toNum = random.Next(1, numofnode + 1);
+                                    int transdest = nextpath[fromNum];
+                                    nextpath.RemoveAt(fromNum);
+                                    nextpath.Insert(toNum, transdest);
+                                } while (0.6 > random.NextDouble());
+
+                            }
+                            else
+                            {
+                                //順番の入れ替え
+                                var fromNum = random.Next(1, numofnode + 1);
+                                var toNum = random.Next(1, numofnode + 1);
+                                nextpath.Reverse(Math.Min(fromNum, toNum), Math.Abs(fromNum - toNum));
+                            }
+
+                            if (MaxSumWeight(nextpath) <= wCap)
+                                okeyflg = true;
+                            else
+                                nextpath = new List<int>(path);
+                        }
+
+                        var E1 = SumCost(nextpath);
+                        var deltaE = E1 - SumCost(path);
+                        if (deltaE < 0 || Math.Exp(-deltaE / T) > random.NextDouble())
+                        {
+                            if (E1 < bestsum)
+                            {
+                                bestsum = E1; bestpath = new List<int>(nextpath);
+                            }
+                            path = nextpath;
+                        }
+
+                        count++;
+                        if (count % timesInTern == 0)
+                            T *= alpha;
+                            //T += alpha2;
+
+                        if (count % (writecount * 100) == 0) Console.WriteLine("count=" + count + " T=" + T + " cost:" + bestsum);
+                        if (count % writecount == 0)
+                        {
+                            beststw.WriteLine(count + " " + bestsum);
+                            curstw.WriteLine(count + " " + SumCost(path));
+                            thermostw.WriteLine(count + " " + string.Format("{0:f3}", T));
+                        }
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
             }
 
             Console.WriteLine("SA finish. Count:" + count);
@@ -258,11 +305,11 @@ namespace Routing2
                     }
                 }
                 System.Console.WriteLine("reading map done");
-                for(int i = 0; i < nCross; i++)
+                /*for(int i = 0; i < nCross; i++) //デバッグ用
                 {
                     for (int j = 0; j < nCross; j++) System.Console.Write(map[i, j] + " ");
                     System.Console.Write('\n');
-                }
+                }*/
             }
             catch(System.Exception e)
             {
@@ -282,9 +329,10 @@ namespace Routing2
                     {
                         var line = str.ReadLine();
                         var nodes = line.Split(',');
-                        var am = true; var pm = true;
+                        var _weight = 50; var am = true; var pm = true;
+                        if (nodes.Length > 2) _weight = int.Parse(nodes[2]);
                         if (nodes.Length > 3) { if (nodes[3] == "AM") pm = false; else if (nodes[3] == "PM") am = false; }
-                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) - 1, weight = int.Parse(nodes[2]), AM = am, PM = pm });
+                        dList.Add(new Destination { name = nodes[0], pos = int.Parse(nodes[1]) - 1, weight = _weight, AM = am, PM = pm });
                     }
                     dest = dList.ToArray();
                     for (int i = 0; i < dest.Length; i++)
@@ -334,7 +382,9 @@ namespace Routing2
                     stw.WriteLine(dest[path[path.Count-1]].name);
                     int costsum = SumCost(path);
                     stw.WriteLine("TIME: " + costsum /6 +"h " + costsum % 6 * 10 + "m");
-                    stw.WriteLine("T0=" + T0 + ", alpha=" + alpha + ", beta=" + beta + "\ntimelimit: " + culctime + "s");
+                    stw.WriteLine("入替:移動:逆順 = " + changeRatio + ":" + insertRatio + ":" + reverseRatio);
+                    stw.WriteLine("T0=" + T0 + ", alpha=" + alpha + ", 平衡時ループ数=" + timesInTern + ", Tend=" + Tend);
+                    stw.WriteLine("randomseed=" + seed);
                 }
             }
             catch(System.Exception e)
