@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
 using System.Linq;
 
@@ -34,11 +33,11 @@ namespace Routing2
         protected string outfile;
         bool finalReturn; //最後帰着するかどうか
         int seed = 334;
-        const double T0 = 500; //500
-        const double Tend = 0.01;
-        double alpha = 0.9999; //Math.Pow(Tend / T0, 1/108000.0); //0.9999
+        const double T0 = 500;//初期温度
+        const double Tend = 0.01;//終了温度
+        double alpha = 0.9999;//Math.Pow(Tend / T0, 1/108000.0);
         //double alpha2 = (Tend - T0) / 108000.0;
-        const int timesInTern = 10; //10
+        const int timesInTern = 10; //熱平衡状態でのループ数
         //↓1-3 近傍状態の生成確率の比
         const double changeRatio = 1; //二者入れ替え
         const double insertRatio = 1; //単体移動

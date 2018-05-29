@@ -2,7 +2,7 @@
   "profiles": {
     "Routing2": {
       "commandName": "Project",
-      "commandLineArgs": "c5000_04 1"
+      "commandLineArgs": "test 71934"
     }
   }
 }
