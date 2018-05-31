@@ -152,7 +152,7 @@ namespace Routing2
                 if(SPreturn) path1.RemoveAt(path1.Count - 1);
                 path = path1; path1.AddRange(path2);
                 for (int i = 0; i < path.Count; i++) Console.Write(dest[path[i]].name + "-");
-                Console.WriteLine("\nTime:" + SumCost(path) * 10 + "min");
+                Console.WriteLine("\nTime:" + SumCost(path) * 10 + "min");//暫定解を表示.
             }
 
             //SAを始める。
