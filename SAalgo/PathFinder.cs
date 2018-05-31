@@ -7,13 +7,13 @@ namespace Routing2
 {
     public class Destination
     {
-        public string name;
-        public int pos;
-        public int[] cost;
-        public List<int>[] route;
-        public int weight = 80;
-        public bool AM = true;
-        public bool PM = true;
+        public string name; //名前
+        public int pos; //所属地点
+        public int[] cost; //他目的地への所要時間
+        public List<int>[] route; //他目的地への経路
+        public int weight = 80; //荷重
+        public bool AM = true; //午前配達の可否
+        public bool PM = true; //午後配達の可否
     }
 
     public class Node { public int pos, prev, cost; };
@@ -29,10 +29,10 @@ namespace Routing2
         int[] isDest; //その場所がDestかどうか(Destならその番号、違うなら-1)
         //const int culctime = 8; //計算時間制限(秒)
         const int writecount = 100; //SA中の報告頻度の設定
-        string outdir;
-        protected string outfile;
+        string outdir; //出力するファイルのあるディレクトリ デフォルトではSAalgo\bin\Debug\netcreapp2.0\resultに出力される
+        protected string outfile; //出力ファイル
         bool finalReturn; //最後帰着するかどうか
-        int seed = 334;
+        int seed = 334; //乱数のシード値
         const double T0 = 500;//初期温度
         const double Tend = 0.01;//終了温度
         double alpha = 0.9999;//Math.Pow(Tend / T0, 1/108000.0);
@@ -67,7 +67,7 @@ namespace Routing2
             return 0;
         }
 
-        void findRoute()
+        void findRoute() //目的地間の経路を探索する。
         {
 
             for(int i = 0; i < dest.Length; i++)
@@ -152,7 +152,7 @@ namespace Routing2
                 if(SPreturn) path1.RemoveAt(path1.Count - 1);
                 path = path1; path1.AddRange(path2);
                 for (int i = 0; i < path.Count; i++) Console.Write(dest[path[i]].name + "-");
-                Console.WriteLine("\nTime:" + SumCost(path) * 10 + "min");
+                Console.WriteLine("\nTime:" + SumCost(path) * 10 + "min");//暫定解を表示.
             }
 
             //SAを始める。
@@ -166,7 +166,7 @@ namespace Routing2
             Int64 count = 0;
             try
             {
-                using (var beststw = new System.IO.StreamWriter(outdir + "\\bestgraph.dat"))
+                using (var beststw = new System.IO.StreamWriter(outdir + "\\bestgraph.dat")) //途中経過データを出力 gnuplotで読み込み可能
                 using (var curstw = new System.IO.StreamWriter(outdir + "\\curgraph.dat"))
                 using (var thermostw = new System.IO.StreamWriter(outdir + "\\thermo.dat"))
                 {
@@ -195,7 +195,7 @@ namespace Routing2
                                     int transdest = nextpath[fromNum];
                                     nextpath.RemoveAt(fromNum);
                                     nextpath.Insert(toNum, transdest);
-                                } while (0.6 > random.NextDouble());
+                                } while (0.4 > random.NextDouble());
 
                             }
                             else
@@ -367,7 +367,7 @@ namespace Routing2
             }
         }
 
-        public void WritePath()
+        public void WritePath() //結果を出力
         {
             try
             {
